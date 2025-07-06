@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import SystemAudioService from '../services/systemAudioService';
 
 const AudioSetup = ({ onConfigChange, currentConfig = {} }) => {
   const [audioDevices, setAudioDevices] = useState([]);
   const [audioLevels, setAudioLevels] = useState(null);
   const [isTestingAudio, setIsTestingAudio] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [systemAudioAvailable, setSystemAudioAvailable] = useState(false);
   const [windowsDevices, setWindowsDevices] = useState([]);
   const [setupStatus, setSetupStatus] = useState('checking');
@@ -21,6 +23,17 @@ const AudioSetup = ({ onConfigChange, currentConfig = {} }) => {
 
   useEffect(() => {
     checkAudioSetup();
+    
+    // Cleanup function to stop audio monitoring when component unmounts
+    return () => {
+      if (window.audioMonitor) {
+        window.audioMonitor.source.disconnect();
+        window.audioMonitor.audioContext.close();
+        window.audioMonitor.stream.getTracks().forEach(track => track.stop());
+        window.audioMonitor.audioService.cleanup();
+        window.audioMonitor = null;
+      }
+    };
   }, []);
 
   const checkAudioSetup = async () => {
@@ -67,41 +80,199 @@ const AudioSetup = ({ onConfigChange, currentConfig = {} }) => {
     setIsTestingAudio(true);
     
     try {
-      // Test system audio capture
-      if (window.electron && window.electron.ipcRenderer) {
-        const result = await window.electron.ipcRenderer.invoke('capture-system-audio', {
-          duration: 3,
+      const audioService = new SystemAudioService();
+      
+      // First try automatic capture
+      console.log('Attempting automatic system audio capture...');
+      let result;
+      
+      try {
+        result = await audioService.quickSystemAudioCapture({
           sampleRate: config.sampleRate,
-          channels: config.channels
+          channels: config.channels,
+          gain: config.gain
         });
+        console.log('Automatic capture successful!');
+        setSetupStatus('working');
+      } catch (autoError) {
+        console.log('Automatic capture failed, trying simple method:', autoError.message);
         
-        if (result.success) {
-          console.log('Audio test successful:', result.method);
+        // Try simple capture method
+        try {
+          result = await audioService.simpleSystemAudioCapture({
+            sampleRate: config.sampleRate,
+            channels: config.channels
+          });
+          console.log('Simple capture successful!');
           setSetupStatus('working');
-        } else {
-          console.error('Audio test failed:', result.error);
-          setSetupStatus('error');
-        }
-      } else {
-        // Browser test
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          audio: true,
-          video: false
-        });
-        
-        if (stream.getAudioTracks().length > 0) {
-          console.log('Browser audio test successful');
-          setSetupStatus('working');
-          stream.getTracks().forEach(track => track.stop());
-        } else {
-          setSetupStatus('error');
+        } catch (simpleError) {
+          console.log('Simple capture failed, trying manual methods:', simpleError.message);
+          
+          // Fallback to manual capture with user interaction
+          result = await audioService.captureAudioWithFallbacks({
+            preferSystemAudio: true,
+            allowMicrophoneFallback: false,
+            autoCapture: true,
+            duration: 3,
+            sampleRate: config.sampleRate,
+            channels: config.channels,
+            gain: config.gain
+          });
         }
       }
+      
+      if (result && result.captureMethod) {
+        console.log('Audio test successful:', result.captureMethod);
+        setSetupStatus('working');
+        
+        // Test if the stream is actually receiving audio data
+        if (result.stream) {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioContext.createMediaStreamSource(result.stream);
+          const analyser = audioContext.createAnalyser();
+          source.connect(analyser);
+          
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          
+          // Monitor audio levels for a short period
+          let hasAudioData = false;
+          const checkAudio = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const sum = dataArray.reduce((a, b) => a + b, 0);
+            const average = sum / dataArray.length;
+            
+            if (average > 0) {
+              hasAudioData = true;
+              console.log('Audio data detected, average level:', average);
+            }
+          };
+          
+          // Check for 1 second
+          const checkInterval = setInterval(checkAudio, 100);
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            source.disconnect();
+            audioContext.close();
+            
+            if (hasAudioData) {
+              setSetupStatus('working');
+              console.log('System audio is working and receiving data');
+            } else {
+              setSetupStatus('ready');
+              console.log('System audio stream created but no audio data detected - this is normal if no audio is playing');
+            }
+          }, 1000);
+        }
+        
+        // Cleanup
+        audioService.cleanup();
+      } else {
+        console.error('Audio test failed: No capture method worked');
+        setSetupStatus('error');
+      }
     } catch (error) {
-      console.error('Audio test failed:', error);
+      console.error('Audio test failed:', error.message);
       setSetupStatus('error');
     } finally {
       setIsTestingAudio(false);
+    }
+  };
+
+  const autoSetupSystemAudio = async () => {
+    try {
+      const audioService = new SystemAudioService();
+      const setup = await audioService.autoSetupSystemAudio();
+      
+      console.log('Auto-setup result:', setup);
+      
+      if (setup.available) {
+        setSetupStatus('ready');
+        alert(`✅ System audio setup complete!\n\nMethod: ${setup.method}\nDevices found: ${setup.devices.length}\n\n${setup.instructions}`);
+      } else {
+        setSetupStatus('error');
+        alert(`❌ System audio setup failed\n\n${setup.instructions}`);
+      }
+    } catch (error) {
+      console.error('Auto-setup failed:', error);
+      setSetupStatus('error');
+      alert(`❌ Auto-setup failed: ${error.message}`);
+    }
+  };
+
+  const startListening = async () => {
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    try {
+      setIsListening(true);
+      const audioService = new SystemAudioService();
+      
+      const result = await audioService.captureAudioWithFallbacks({
+        preferSystemAudio: true,
+        allowMicrophoneFallback: false,
+        duration: 0, // Continuous
+        sampleRate: config.sampleRate,
+        channels: config.channels,
+        gain: config.gain
+      });
+      
+      if (result && result.stream) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(result.stream);
+        const analyser = audioContext.createAnalyser();
+        source.connect(analyser);
+        
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
+        // Store references for cleanup
+        window.audioMonitor = {
+          audioContext,
+          source,
+          analyser,
+          stream: result.stream,
+          audioService
+        };
+        
+        // Monitor audio levels
+        const updateLevels = () => {
+          if (!isListening) return;
+          
+          analyser.getByteFrequencyData(dataArray);
+          const sum = dataArray.reduce((a, b) => a + b, 0);
+          const average = sum / dataArray.length;
+          const peak = Math.max(...dataArray);
+          
+          setAudioLevels({
+            average: Math.round(average),
+            peak: Math.round(peak),
+            percentage: Math.round((average / 255) * 100)
+          });
+          
+          if (isListening) {
+            requestAnimationFrame(updateLevels);
+          }
+        };
+        
+        updateLevels();
+      }
+    } catch (error) {
+      console.error('Failed to start listening:', error);
+      setIsListening(false);
+    }
+  };
+
+  const stopListening = () => {
+    setIsListening(false);
+    setAudioLevels(null);
+    
+    if (window.audioMonitor) {
+      window.audioMonitor.source.disconnect();
+      window.audioMonitor.audioContext.close();
+      window.audioMonitor.stream.getTracks().forEach(track => track.stop());
+      window.audioMonitor.audioService.cleanup();
+      window.audioMonitor = null;
     }
   };
 
@@ -188,6 +359,29 @@ const AudioSetup = ({ onConfigChange, currentConfig = {} }) => {
         </div>
       </div>
 
+      {/* Audio Level Monitor */}
+      {audioLevels && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <h3 className="font-semibold text-gray-700 mb-3">Live Audio Levels</h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Average Level:</span>
+              <span className="text-sm font-medium text-gray-700">{audioLevels.percentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-green-500 h-2 rounded-full transition-all duration-100"
+                style={{ width: `${Math.min(audioLevels.percentage, 100)}%` }}
+              ></div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Peak: {audioLevels.peak}</span>
+              <span>Raw: {audioLevels.average}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Configuration */}
       <div className="mb-6">
         <h3 className="font-semibold text-gray-700 mb-3">Audio Configuration</h3>
@@ -262,11 +456,30 @@ const AudioSetup = ({ onConfigChange, currentConfig = {} }) => {
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
         <button
+          onClick={autoSetupSystemAudio}
+          className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium"
+        >
+          🚀 Auto-Setup System Audio
+        </button>
+
+        <button
           onClick={testAudioCapture}
-          disabled={isTestingAudio}
+          disabled={isTestingAudio || isListening}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isTestingAudio ? 'Testing...' : 'Test Audio Capture'}
+        </button>
+
+        <button
+          onClick={startListening}
+          disabled={isTestingAudio}
+          className={`px-4 py-2 text-white rounded-md transition-colors ${
+            isListening 
+              ? 'bg-red-600 hover:bg-red-700' 
+              : 'bg-purple-600 hover:bg-purple-700'
+          }`}
+        >
+          {isListening ? 'Stop Listening' : 'Start Live Monitor'}
         </button>
 
         <button
@@ -326,12 +539,30 @@ const AudioSetup = ({ onConfigChange, currentConfig = {} }) => {
 
       {/* Help Text */}
       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-semibold text-blue-800 mb-2">Setup Help</h4>
-        <div className="text-sm text-blue-700 space-y-1">
-          <p>• <strong>Windows:</strong> Enable "Stereo Mix" in sound settings for system audio</p>
-          <p>• <strong>macOS:</strong> Enable screen recording permissions for system audio</p>
-          <p>• <strong>Linux:</strong> Use PulseAudio loopback or PipeWire</p>
-          <p>• <strong>Browser:</strong> Select "Share system audio" when prompted</p>
+        <h4 className="font-semibold text-blue-800 mb-2">🚀 Automatic System Audio Setup</h4>
+        <div className="text-sm text-blue-700 space-y-2">
+          <p><strong>� Easy Setup:</strong> Click "Auto-Setup System Audio" button above - it will automatically detect and configure the best available method!</p>
+          
+          <div className="bg-green-50 p-3 rounded border-l-4 border-green-400 mt-3">
+            <p><strong>✨ Automatic Methods (No manual setup required):</strong></p>
+            <ul className="list-disc list-inside ml-4 space-y-1">
+              <li><strong>Stereo Mix:</strong> Automatically detects if already enabled</li>
+              <li><strong>VB-Cable:</strong> Auto-detects virtual audio cables</li>
+              <li><strong>Voicemeeter:</strong> Works with Voicemeeter virtual devices</li>
+              <li><strong>Soundflower (Mac):</strong> Detects system audio loopback</li>
+            </ul>
+          </div>
+          
+          <div className="bg-orange-50 p-3 rounded border-l-4 border-orange-400 mt-3">
+            <p><strong>� Manual Setup (Only if auto-setup fails):</strong></p>
+            <ul className="list-disc list-inside ml-4 space-y-1">
+              <li><strong>Windows:</strong> Enable "Stereo Mix" in Sound Settings → Recording → Right-click → Show Disabled Devices</li>
+              <li><strong>Alternative:</strong> Install VB-Cable from vb-audio.com (free virtual audio cable)</li>
+              <li><strong>Browser:</strong> Use "Test Audio Capture" → Allow screen sharing → Check "Share system audio"</li>
+            </ul>
+          </div>
+          
+          <p className="mt-2"><strong>⚠️ Important:</strong> Make sure audio is actually playing (music, video, etc.) when testing!</p>
         </div>
       </div>
     </div>

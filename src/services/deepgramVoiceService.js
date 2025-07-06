@@ -62,24 +62,81 @@ class DeepgramVoiceService {
 
         // Use SystemAudioService for advanced capture
         try {
-          audioCapture = await this.systemAudioService.captureAudioWithFallbacks({
-            quality: 'high',
-            channels: 2,
-            sampleRate: 48000,
-            bitDepth: 16,
-            gain: 1.0,
-            preferSystemAudio: true,
-            allowMicrophoneFallback: false // Don't fallback to mic for system audio mode
-          });
+          console.log('Attempting automatic system audio capture first...');
           
-          stream = audioCapture.stream;
-          
-          // Start audio level monitoring
-          this.systemAudioService.startAudioLevelMonitoring((levels) => {
-            if (this.audioLevelCallback) {
-              this.audioLevelCallback(levels);
+          // Try automatic capture first (no user interaction)
+          try {
+            audioCapture = await this.systemAudioService.quickSystemAudioCapture({
+              quality: 'high',
+              channels: 2,
+              sampleRate: 48000,
+              bitDepth: 16,
+              gain: 1.0
+            });
+            
+            stream = audioCapture.stream;
+            console.log('✅ Automatic system audio capture successful!');
+            
+          } catch (autoError) {
+            console.log('Automatic capture failed, trying simple method:', autoError.message);
+            
+            // Try simple capture method (no complex processing)
+            try {
+              audioCapture = await this.systemAudioService.simpleSystemAudioCapture({
+                quality: 'high',
+                channels: 2,
+                sampleRate: 48000
+              });
+              
+              stream = audioCapture.stream;
+              console.log('✅ Simple system audio capture successful!');
+              
+            } catch (simpleError) {
+              console.log('Simple capture failed, trying basic methods:', simpleError.message);
+              
+              // Try basic capture method (no audio context)
+              try {
+                audioCapture = await this.systemAudioService.basicSystemAudioCapture({
+                  quality: 'high',
+                  channels: 2,
+                  sampleRate: 48000
+                });
+                
+                stream = audioCapture.stream;
+                console.log('✅ Basic system audio capture successful!');
+                
+              } catch (basicError) {
+                console.log('Basic capture failed, trying manual methods:', basicError.message);
+                
+                // Fallback to manual capture methods
+                audioCapture = await this.systemAudioService.captureAudioWithFallbacks({
+                  quality: 'high',
+                  channels: 2,
+                  sampleRate: 48000,
+                  bitDepth: 16,
+                  gain: 1.0,
+                  preferSystemAudio: true,
+                  allowMicrophoneFallback: false, // Don't fallback to mic for system audio mode
+                  autoCapture: true
+                });
+                
+                stream = audioCapture.stream;
+              }
             }
-          }, 100);
+          }
+          
+          // Start audio level monitoring (if available)
+          try {
+            this.systemAudioService.startAudioLevelMonitoring((levels) => {
+              if (this.audioLevelCallback) {
+                this.audioLevelCallback(levels);
+              }
+            }, 100);
+            console.log('Audio level monitoring started');
+          } catch (monitorError) {
+            console.warn('Audio level monitoring not available (no audio context):', monitorError.message);
+            // Continue without audio level monitoring
+          }
           
           if (audioCapture.isSystemAudio) {
             console.log(`Advanced system audio capture initialized (method: ${audioCapture.captureMethod})`);
@@ -140,17 +197,41 @@ class DeepgramVoiceService {
 
       // Create MediaRecorder with optimal settings
       const options = this.getOptimalRecordingOptions();
-      this.mediaRecorder = new MediaRecorder(stream, options);
+      
+      // For system audio, we need to use the processed stream from SystemAudioService
+      const recordingStream = audioCapture && audioCapture.processedStream ? audioCapture.processedStream : stream;
+      console.log('Using recording stream:', recordingStream.getAudioTracks().length, 'audio tracks');
+      
+      this.mediaRecorder = new MediaRecorder(recordingStream, options);
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
+          console.log('Audio chunk received:', event.data.size, 'bytes');
         }
       };
 
       this.mediaRecorder.onstop = async () => {
         try {
           const audioBlob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType });
+          console.log('Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
+          
+          // Validate audio blob size
+          if (audioBlob.size < 1000) { // Less than 1KB is likely empty
+            console.warn('Audio blob is too small:', audioBlob.size, 'bytes');
+            onError('No speech detected. Please speak clearly and try again.');
+            return;
+          }
+          
+          // Check if we captured any audio levels during recording
+          if (useSystemAudio && this.systemAudioService) {
+            const levels = this.systemAudioService.getAudioLevels();
+            if (levels && levels.volume < 0.01) { // Very low volume threshold
+              console.warn('Audio levels too low:', levels);
+              onError('No audio detected. Please ensure audio is playing and try again.');
+              return;
+            }
+          }
           
           // Always use Electron backend for transcription (avoids CORS issues)
           await this.transcribeWithElectron(audioBlob, onResult, onError);
@@ -176,10 +257,28 @@ class DeepgramVoiceService {
       // Start recording
       this.mediaRecorder.start();
       console.log(`Started recording with advanced audio service (${useSystemAudio ? 'System Audio' : 'Microphone'} mode)`);
+      
+      // Monitor audio levels during recording for debugging
+      let audioLevelCheck = null;
+      if (useSystemAudio && this.systemAudioService) {
+        audioLevelCheck = setInterval(() => {
+          const levels = this.systemAudioService.getAudioLevels();
+          if (levels) {
+            console.log('Audio levels during recording:', {
+              volume: levels.volume.toFixed(3),
+              peak: levels.peak.toFixed(3),
+              average: levels.average.toFixed(3)
+            });
+          }
+        }, 2000); // Check every 2 seconds
+      }
 
       // Auto-stop after 10 seconds for system audio, 5 seconds for microphone
       const duration = useSystemAudio ? 10000 : 5000;
       setTimeout(() => {
+        if (audioLevelCheck) {
+          clearInterval(audioLevelCheck);
+        }
         if (this.isListening && this.mediaRecorder && this.mediaRecorder.state === 'recording') {
           this.stopListening();
         }
@@ -490,25 +589,35 @@ class DeepgramVoiceService {
   getOptimalRecordingOptions() {
     const options = {
       mimeType: 'audio/webm;codecs=opus',
-      audioBitsPerSecond: 256000 // Higher bitrate for better quality
+      audioBitsPerSecond: 128000 // Balanced quality for speech recognition
     };
     
-    // Fallback MIME types
+    // Prioritize MIME types that work well with speech recognition
     const fallbackTypes = [
-      'audio/webm;codecs=opus',
-      'audio/webm;codecs=pcm',
-      'audio/webm',
-      'audio/mp4;codecs=aac',
-      'audio/mp4',
-      'audio/ogg;codecs=opus'
+      'audio/webm;codecs=opus',   // Best for speech recognition
+      'audio/webm;codecs=pcm',    // Uncompressed, good quality
+      'audio/webm',               // Basic WebM
+      'audio/mp4;codecs=aac',     // Good compatibility
+      'audio/mp4',                // Basic MP4
+      'audio/ogg;codecs=opus',    // Opus in OGG
+      'audio/wav'                 // Fallback for older browsers
     ];
     
     for (const mimeType of fallbackTypes) {
       if (MediaRecorder.isTypeSupported(mimeType)) {
         options.mimeType = mimeType;
-        console.log('Using MIME type:', mimeType);
+        console.log('Selected MIME type for recording:', mimeType);
         break;
       }
+    }
+    
+    // Adjust bitrate based on MIME type
+    if (options.mimeType.includes('opus')) {
+      options.audioBitsPerSecond = 128000; // Opus works well at 128kbps
+    } else if (options.mimeType.includes('aac')) {
+      options.audioBitsPerSecond = 256000; // AAC needs higher bitrate
+    } else if (options.mimeType.includes('pcm')) {
+      options.audioBitsPerSecond = 512000; // PCM is uncompressed
     }
     
     return options;

@@ -231,25 +231,30 @@ function createWindow () {
         thumbnailSize: { width: 150, height: 150 }
       });
 
-      // Add system audio detection
-      const audioSources = sources.map(source => ({
-        id: source.id,
-        name: source.name,
-        thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null,
-        hasAudio: true, // Assume all sources can have audio
-        type: source.name.toLowerCase().includes('screen') ? 'screen' : 'window'
-      }));
+      console.log(`Found ${sources.length} total sources`);
 
-      // Add virtual audio sources for system audio
-      audioSources.unshift({
-        id: 'system-audio',
-        name: 'System Audio',
-        thumbnail: null,
-        hasAudio: true,
-        type: 'system'
+      // Process and prioritize sources for system audio capture
+      const audioSources = sources.map(source => {
+        const isScreen = source.name.toLowerCase().includes('screen') || 
+                         source.name.toLowerCase().includes('entire screen') ||
+                         source.name.toLowerCase().includes('display');
+        
+        return {
+          id: source.id,
+          name: source.name,
+          thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null,
+          hasAudio: true, // All sources can potentially have audio
+          type: isScreen ? 'screen' : 'window',
+          display_id: source.display_id,
+          // Add priority for system audio - screens are better than windows
+          priority: isScreen ? 1 : 2
+        };
       });
 
-      console.log('Total audio sources found:', audioSources.length);
+      // Sort by priority (screens first, then windows)
+      audioSources.sort((a, b) => a.priority - b.priority);
+
+      console.log('Processed audio sources:', audioSources.map(s => `${s.name} (${s.type})`));
       return audioSources;
     } catch (error) {
       console.error('Failed to get audio sources:', error);
