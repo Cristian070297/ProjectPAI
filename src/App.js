@@ -1,5 +1,6 @@
-import React from 'react';
-import { Header, MessageList, VoiceStatus, InputArea } from './components';
+import React, { useState, useEffect } from 'react';
+import { Header, MessageList, VoiceStatus, InputArea, AudioSetup } from './components';
+import SystemAudioGuide from './components/SystemAudioGuide';
 import { 
   useAppState, 
   useVoiceSetup, 
@@ -11,6 +12,18 @@ import deepgramVoiceService from './services/deepgramVoiceService';
 
 const App = () => {
   console.log('App component rendering');
+  
+  // Audio setup state
+  const [showAudioSetup, setShowAudioSetup] = useState(false);
+  const [showSystemAudioGuide, setShowSystemAudioGuide] = useState(false);
+  const [audioConfig, setAudioConfig] = useState({
+    sampleRate: 48000,
+    channels: 2,
+    quality: 'high',
+    gain: 1.0
+  });
+  const [audioLevels, setAudioLevels] = useState(null);
+  const [isSystemAudio, setIsSystemAudio] = useState(false);
   
   // Custom hooks for state management
   const {
@@ -51,25 +64,83 @@ const App = () => {
 
   const { handleScreenshot } = useScreenshotHandling(setIsLoading, setMessages);
 
+  // Set up audio level monitoring
+  useEffect(() => {
+    deepgramVoiceService.setAudioLevelCallback(setAudioLevels);
+    
+    return () => {
+      deepgramVoiceService.setAudioLevelCallback(null);
+    };
+  }, []);
+
+  // Enhanced voice command with system audio support
+  const handleSystemAudioVoiceCommand = async (useSystemAudio = false) => {
+    setIsSystemAudio(useSystemAudio);
+    
+    if (useSystemAudio) {
+      // Apply audio configuration
+      deepgramVoiceService.setSystemAudioGain(audioConfig.gain);
+    }
+    
+    await handleVoiceCommand(useSystemAudio);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <Header />
       
+      {/* Audio Setup Modal */}
+      {showAudioSetup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Audio Setup</h2>
+              <button
+                onClick={() => setShowAudioSetup(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <AudioSetup
+              onConfigChange={setAudioConfig}
+              currentConfig={audioConfig}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* System Audio Guide Modal */}
+      {showSystemAudioGuide && (
+        <SystemAudioGuide
+          isVisible={showSystemAudioGuide}
+          onClose={() => setShowSystemAudioGuide(false)}
+        />
+      )}
+
       <MessageList messages={messages} isLoading={isLoading} />
       
-      <VoiceStatus voiceStatus={voiceStatus} voiceError={voiceError} />
+      <VoiceStatus 
+        voiceStatus={voiceStatus} 
+        voiceError={voiceError} 
+        audioLevels={audioLevels}
+        isSystemAudio={isSystemAudio}
+        onShowSystemAudioGuide={() => setShowSystemAudioGuide(true)}
+      />
       
       <InputArea
         inputValue={inputValue}
         setInputValue={setInputValue}
         handleSendMessage={handleSendMessage}
         handleScreenshot={handleScreenshot}
-        handleVoiceCommand={handleVoiceCommand}
+        handleVoiceCommand={handleSystemAudioVoiceCommand}
         isLoading={isLoading}
         isListening={isListening}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         deepgramVoiceService={deepgramVoiceService}
+        onShowAudioSetup={() => setShowAudioSetup(true)}
+        audioConfig={audioConfig}
       />
     </div>
   );

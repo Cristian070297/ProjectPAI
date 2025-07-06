@@ -7,7 +7,9 @@ const ActionButtons = ({
   isListening, 
   isMuted, 
   setIsMuted, 
-  deepgramVoiceService 
+  deepgramVoiceService,
+  useSystemAudio,
+  systemAudioAvailable
 }) => {
   const buttonClass = "px-4 py-2 rounded-lg transition-all text-sm font-medium disabled:bg-gray-400";
   const pulseStyle = { animation: 'pulse 1s ease-in-out infinite' };
@@ -26,23 +28,30 @@ const ActionButtons = ({
         onClick={() => handleVoiceCommand(false)}
         disabled={isLoading}
         className={`${buttonClass} ${
-          isListening
+          isListening && !useSystemAudio
             ? 'bg-red-500 hover:bg-red-600 text-white'
             : 'bg-purple-500 hover:bg-purple-600 text-white'
         }`}
-        style={isListening ? pulseStyle : {}}
+        style={isListening && !useSystemAudio ? pulseStyle : {}}
       >
-        {isListening ? '🔴 Stop' : '🎤 Mic'}
+        {isListening && !useSystemAudio ? '🔴 Stop' : '🎤 Microphone'}
       </button>
 
-      <button
-        onClick={() => handleVoiceCommand(true)}
-        disabled={isLoading}
-        className={`${buttonClass} bg-red-500 hover:bg-red-600 text-white`}
-        style={isListening ? pulseStyle : {}}
-      >
-        {isListening ? '🔴 Stop' : '🎵 Audio'}
-      </button>
+      {systemAudioAvailable && (
+        <button
+          onClick={() => handleVoiceCommand(true)}
+          disabled={isLoading}
+          className={`${buttonClass} ${
+            isListening && useSystemAudio
+              ? 'bg-red-500 hover:bg-red-600 text-white'
+              : 'bg-orange-500 hover:bg-orange-600 text-white'
+          }`}
+          style={isListening && useSystemAudio ? pulseStyle : {}}
+          title="Capture system audio regardless of volume"
+        >
+          {isListening && useSystemAudio ? '🔴 Stop' : '🎵 System Audio'}
+        </button>
+      )}
 
       <button
         onClick={() => {

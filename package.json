@@ -17,10 +17,14 @@
   "dependencies": {
     "@deepgram/sdk": "^4.7.0",
     "@google/generative-ai": "^0.24.1",
+    "audio-buffer-utils": "^5.1.2",
+    "audio-context": "^1.0.3",
     "axios": "^1.10.0",
     "dotenv": "^17.0.0",
+    "fft-js": "^0.0.12",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "web-audio-api": "^0.2.2"
   },
   "devDependencies": {
     "@types/dom-speech-recognition": "^0.0.6",

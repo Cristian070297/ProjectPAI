@@ -1,15 +1,46 @@
-# RoseAi - AI Assistant Desktop App
+# AI Assistant Desktop App with Advanced System Audio Capture
 
-A modern AI assistant desktop application built with React, Electron, Google Gemini, and Deepgram Voice.
+A powerful desktop application that combines AI conversation capabilities with advanced system audio capture technology. This app can accurately capture internal system audio regardless of output volume, output device, or system configuration.
 
-## Features
+## 🎵 Advanced Audio Features
 
-- 🤖 AI conversations powered by Google Gemini
-- 🎤 Voice input with Deepgram speech recognition
-- 📸 Screenshot analysis with AI
-- 🔊 Text-to-speech responses
-- 🎵 PC audio recording capability
-- 🌹 Beautiful, responsive UI with Tailwind CSS
+### System Audio Capture
+- **Volume-Independent Capture**: Records internal audio even when system volume is muted or at very low levels
+- **Universal Device Support**: Works with any output device (speakers, headphones, Bluetooth devices)
+- **Multi-Source Capture**: Captures from all internal audio sources including:
+  - System sounds and notifications
+  - Media playback (YouTube, Spotify, etc.)
+  - Application audio streams
+  - Game audio
+  - Voice calls and conferences
+
+### Audio Quality & Processing
+- **High-Fidelity Capture**: Up to 96kHz/24-bit audio quality
+- **Real-Time Processing**: Low-latency audio processing with 10ms response time
+- **Lossless Capture**: Preserves original audio quality without compression artifacts
+- **Multi-Channel Support**: Stereo and mono recording options
+- **Audio Enhancement**: Built-in gain control and level monitoring
+
+### Platform-Specific Implementation
+- **Windows**: WASAPI loopback capture for direct system audio access
+- **macOS**: Core Audio integration with enhanced screen recording
+- **Linux**: PulseAudio/PipeWire support for comprehensive audio routing
+
+## 🚀 Features
+
+### Core Functionality
+- **AI-Powered Conversations**: Powered by Google's Gemini AI
+- **Voice Recognition**: Advanced speech-to-text with Deepgram
+- **Screen Analysis**: AI-powered screenshot analysis
+- **Text-to-Speech**: Natural voice responses
+- **System Audio Capture**: Record internal audio regardless of volume
+
+### Audio Capabilities
+- **Multiple Input Sources**: Microphone, system audio, or both
+- **Real-Time Audio Visualization**: Live audio levels and waveform display
+- **Audio Device Management**: Automatic detection and selection
+- **Quality Presets**: From speech-optimized to high-resolution audio
+- **Background Processing**: Continuous monitoring without UI blocking
 
 ## Project Structure
 

@@ -6,3 +6,5 @@ export { default as VoiceStatus } from './VoiceStatus';
 export { default as InputArea } from './InputArea';
 export { default as ActionButtons } from './ActionButtons';
 export { default as MessageInput } from './MessageInput';
+export { default as AudioSetup } from './AudioSetup';
+export { default as AudioSetupTips } from './AudioSetupTips';

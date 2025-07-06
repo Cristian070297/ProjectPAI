@@ -1,4 +1,4 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain } = require('electron');
+const { app, BrowserWindow, desktopCapturer, ipcMain, systemPreferences } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -23,7 +23,10 @@ try {
 
 // Initialize Gemini service
 const GeminiMainService = require('./src/services/geminiMainService');
+const WindowsAudioCapture = require('./src/services/windowsAudioCapture');
+
 const geminiService = new GeminiMainService();
+const windowsAudioCapture = new WindowsAudioCapture();
 
 function createWindow () {
   console.log('Creating Electron window...');
@@ -178,6 +181,226 @@ function createWindow () {
         error: 'Voice transcription failed. Please try again.',
         requestId: audioData.requestId
       });
+    }
+  });
+
+  // Enhanced system audio sources handler
+  ipcMain.handle('get-system-audio-sources', async (event, options = {}) => {
+    try {
+      console.log('Getting system audio sources...');
+      
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window', 'audio'],
+        thumbnailSize: { width: 150, height: 150 },
+        fetchWindowIcons: options.fetchWindowIcons || false
+      });
+
+      // Filter and enhance audio sources
+      const audioSources = sources.filter(source => {
+        const name = source.name.toLowerCase();
+        return name.includes('audio') || 
+               name.includes('speaker') || 
+               name.includes('system') ||
+               name.includes('output') ||
+               name.includes('sound') ||
+               source.id.includes('audio');
+      });
+
+      console.log('Found audio sources:', audioSources.length);
+      
+      return audioSources.map(source => ({
+        id: source.id,
+        name: source.name,
+        thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null,
+        display_id: source.display_id,
+        appIcon: source.appIcon ? source.appIcon.toDataURL() : null
+      }));
+    } catch (error) {
+      console.error('Failed to get system audio sources:', error);
+      return [];
+    }
+  });
+
+  // Get all available audio sources (including system audio)
+  ipcMain.handle('get-audio-sources', async (event) => {
+    try {
+      console.log('Getting all audio sources...');
+      
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 150, height: 150 }
+      });
+
+      // Add system audio detection
+      const audioSources = sources.map(source => ({
+        id: source.id,
+        name: source.name,
+        thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null,
+        hasAudio: true, // Assume all sources can have audio
+        type: source.name.toLowerCase().includes('screen') ? 'screen' : 'window'
+      }));
+
+      // Add virtual audio sources for system audio
+      audioSources.unshift({
+        id: 'system-audio',
+        name: 'System Audio',
+        thumbnail: null,
+        hasAudio: true,
+        type: 'system'
+      });
+
+      console.log('Total audio sources found:', audioSources.length);
+      return audioSources;
+    } catch (error) {
+      console.error('Failed to get audio sources:', error);
+      return [];
+    }
+  });
+
+  // Check audio permissions and capabilities
+  ipcMain.handle('check-audio-permissions', async (event) => {
+    try {
+      const permissions = {
+        microphone: false,
+        systemAudio: false,
+        screenCapture: false
+      };
+
+      // Check microphone permission
+      if (process.platform === 'darwin') {
+        permissions.microphone = systemPreferences.getMediaAccessStatus('microphone') === 'granted';
+        permissions.screenCapture = systemPreferences.getMediaAccessStatus('screen') === 'granted';
+      } else {
+        // For Windows and Linux, assume permissions are available
+        permissions.microphone = true;
+        permissions.screenCapture = true;
+      }
+
+      permissions.systemAudio = permissions.screenCapture; // System audio requires screen capture
+
+      console.log('Audio permissions:', permissions);
+      return permissions;
+    } catch (error) {
+      console.error('Failed to check audio permissions:', error);
+      return {
+        microphone: false,
+        systemAudio: false,
+        screenCapture: false
+      };
+    }
+  });
+
+  // Request audio permissions
+  ipcMain.handle('request-audio-permissions', async (event) => {
+    try {
+      if (process.platform === 'darwin') {
+        const microphoneAccess = await systemPreferences.askForMediaAccess('microphone');
+        const screenAccess = await systemPreferences.askForMediaAccess('screen');
+        
+        return {
+          microphone: microphoneAccess,
+          systemAudio: screenAccess,
+          screenCapture: screenAccess
+        };
+      } else {
+        // For Windows and Linux, return true (handled at browser level)
+        return {
+          microphone: true,
+          systemAudio: true,
+          screenCapture: true
+        };
+      }
+    } catch (error) {
+      console.error('Failed to request audio permissions:', error);
+      return {
+        microphone: false,
+        systemAudio: false,
+        screenCapture: false
+      };
+    }
+  });
+
+  // Windows-specific system audio capture
+  ipcMain.handle('windows-audio-capture', async (event, options = {}) => {
+    try {
+      if (!windowsAudioCapture.isSupported()) {
+        throw new Error('Windows audio capture is only supported on Windows');
+      }
+
+      console.log('Starting Windows system audio capture...');
+      const captureResult = await windowsAudioCapture.captureSystemAudio(
+        options.duration || 10
+      );
+
+      // Convert to base64 for transmission
+      const base64Audio = captureResult.data.toString('base64');
+      
+      return {
+        success: true,
+        audioData: base64Audio,
+        format: captureResult.format,
+        sampleRate: captureResult.sampleRate,
+        channels: captureResult.channels
+      };
+    } catch (error) {
+      console.error('Windows audio capture failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
+  // Get Windows audio devices
+  ipcMain.handle('get-windows-audio-devices', async (event) => {
+    try {
+      await windowsAudioCapture.initialize();
+      const devices = windowsAudioCapture.getAvailableDevices();
+      
+      return {
+        success: true,
+        devices: devices
+      };
+    } catch (error) {
+      console.error('Failed to get Windows audio devices:', error);
+      return {
+        success: false,
+        error: error.message,
+        devices: []
+      };
+    }
+  });
+
+  // Enhanced system audio capture with multiple methods
+  ipcMain.handle('capture-system-audio', async (event, options = {}) => {
+    try {
+      console.log('Starting enhanced system audio capture...');
+      
+      // Try Windows-specific capture first (if on Windows)
+      if (windowsAudioCapture.isSupported()) {
+        try {
+          const result = await windowsAudioCapture.captureSystemAudio(options.duration || 10);
+          return {
+            success: true,
+            method: 'windows-wasapi',
+            audioData: result.data.toString('base64'),
+            format: result.format,
+            sampleRate: result.sampleRate,
+            channels: result.channels
+          };
+        } catch (windowsError) {
+          console.warn('Windows audio capture failed, trying alternative methods:', windowsError);
+        }
+      }
+      
+      // Fallback to other methods
+      throw new Error('No suitable system audio capture method available');
+    } catch (error) {
+      console.error('Enhanced system audio capture failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   });
 }
