@@ -1,0 +1,41 @@
+{
+  "name": "ai-assistant-desktop",
+  "version": "1.0.0",
+  "description": "AI Assistant Desktop App",
+  "scripts": {
+    "start-renderer": "parcel serve public/index.html --dist-dir dist --port 3000",
+    "start": "npm run build:css && npm run build-renderer && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3000 && electron electron-main.js\"",
+    "start-dev": "concurrently \"npm run start-renderer\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron electron-main.js\"",
+    "build-renderer": "node build-renderer.js",
+    "build": "electron-builder",
+    "build:css": "tailwindcss -i ./public/styles.css -o ./public/build/styles.css",
+    "build:css:watch": "tailwindcss -i ./public/styles.css -o ./public/build/styles.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@deepgram/sdk": "^4.7.0",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.10.0",
+    "dotenv": "^17.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/dom-speech-recognition": "^0.0.6",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "parcel": "^2.15.4",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.3.3",
+    "wait-on": "^7.2.0"
+  },
+  "targets": {
+    "main": false
+  },
+  "main": "electron-main.js"
+}
