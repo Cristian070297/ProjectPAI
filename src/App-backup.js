@@ -170,6 +170,15 @@ const App = () => {
         />
       )}
 
+      {/* API Key Setup Modal */}
+      {showApiKeySetup && (
+        <ApiKeySetup
+          isVisible={showApiKeySetup}
+          onClose={() => setShowApiKeySetup(false)}
+          onApiKeysConfigured={() => setApiKeysConfigured(true)}
+        />
+      )}
+
       <MessageList messages={messages} isLoading={isLoading} />
       
       {/* Context File Manager */}

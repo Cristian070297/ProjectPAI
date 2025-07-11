@@ -1,4 +1,4 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain, systemPreferences } = require('electron');
+const { app, BrowserWindow, desktopCapturer, ipcMain, systemPreferences, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -78,9 +78,9 @@ function createWindow () {
   });
 
   // Gemini API IPC handlers
-  ipcMain.handle('gemini-generate-response', async (event, message, conversationHistory) => {
+  ipcMain.handle('gemini-generate-response', async (event, message, conversationHistory, systemPrompt) => {
     try {
-      const response = await geminiService.generateResponse(message, conversationHistory);
+      const response = await geminiService.generateResponse(message, conversationHistory, systemPrompt);
       return { success: true, response };
     } catch (error) {
       console.error('Gemini generate response error:', error);
@@ -94,6 +94,157 @@ function createWindow () {
       return { success: true, response };
     } catch (error) {
       console.error('Gemini analyze image error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // File upload and context management handlers
+  ipcMain.handle('open-file-dialog', async (event) => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        filters: [
+          { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'txt', 'rtf'] },
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'gif'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const filePath = result.filePaths[0];
+      const fileName = path.basename(filePath);
+      const fileExtension = path.extname(filePath).toLowerCase();
+      
+      // Read file content based on type
+      let content = '';
+      let fileType = 'unknown';
+
+      if (['.txt', '.md', '.js', '.py', '.java', '.cpp', '.html', '.css'].includes(fileExtension)) {
+        // Text files
+        content = fs.readFileSync(filePath, 'utf8');
+        fileType = 'text';
+      } else if (['.jpg', '.jpeg', '.png', '.bmp', '.gif'].includes(fileExtension)) {
+        // Image files
+        const imageBuffer = fs.readFileSync(filePath);
+        content = `data:image/${fileExtension.slice(1)};base64,${imageBuffer.toString('base64')}`;
+        fileType = 'image';
+      } else if (['.pdf', '.doc', '.docx'].includes(fileExtension)) {
+        // Document files - for now, just store the path
+        content = `Document file: ${fileName} (${fileExtension.toUpperCase()})`;
+        fileType = 'document';
+      }
+
+      return {
+        success: true,
+        file: {
+          name: fileName,
+          path: filePath,
+          content: content,
+          type: fileType,
+          extension: fileExtension
+        }
+      };
+    } catch (error) {
+      console.error('File dialog error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Store user context (CV, portfolio, etc.)
+  let userContext = null;
+  
+  ipcMain.handle('set-user-context', async (event, contextData) => {
+    try {
+      userContext = contextData;
+      console.log('User context updated:', contextData.type);
+      return { success: true };
+    } catch (error) {
+      console.error('Set user context error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('get-user-context', async (event) => {
+    return { success: true, context: userContext };
+  });
+
+  ipcMain.handle('clear-user-context', async (event) => {
+    userContext = null;
+    return { success: true };
+  });
+
+  // API Key management handlers
+  ipcMain.handle('api-keys-get-current', async (event) => {
+    try {
+      return {
+        success: true,
+        keys: {
+          gemini: process.env.GEMINI_API_KEY || '',
+          deepgram: process.env.DEEPGRAM_API_KEY || ''
+        }
+      };
+    } catch (error) {
+      console.error('Get API keys error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('api-keys-update', async (event, keys) => {
+    try {
+      const envPath = path.join(__dirname, '.env');
+      let envContent = '';
+
+      // Read existing .env file if it exists
+      try {
+        envContent = fs.readFileSync(envPath, 'utf8');
+      } catch (error) {
+        // File doesn't exist, we'll create it
+        console.log('.env file not found, creating new one');
+      }
+
+      // Update or add API keys
+      const lines = envContent.split('\n');
+      const updatedLines = [];
+      let geminiUpdated = false;
+      let deepgramUpdated = false;
+
+      for (const line of lines) {
+        if (line.startsWith('GEMINI_API_KEY=')) {
+          updatedLines.push(`GEMINI_API_KEY=${keys.gemini || 'your_gemini_api_key_here'}`);
+          geminiUpdated = true;
+        } else if (line.startsWith('DEEPGRAM_API_KEY=')) {
+          updatedLines.push(`DEEPGRAM_API_KEY=${keys.deepgram || 'your_deepgram_api_key_here'}`);
+          deepgramUpdated = true;
+        } else if (line.trim() !== '') {
+          updatedLines.push(line);
+        }
+      }
+
+      // Add missing keys
+      if (!geminiUpdated) {
+        updatedLines.push(`GEMINI_API_KEY=${keys.gemini || 'your_gemini_api_key_here'}`);
+      }
+      if (!deepgramUpdated) {
+        updatedLines.push(`DEEPGRAM_API_KEY=${keys.deepgram || 'your_deepgram_api_key_here'}`);
+      }
+
+      // Ensure NODE_ENV is set
+      const hasNodeEnv = updatedLines.some(line => line.startsWith('NODE_ENV='));
+      if (!hasNodeEnv) {
+        updatedLines.push('NODE_ENV=development');
+      }
+
+      // Write updated .env file
+      const newEnvContent = updatedLines.filter(line => line.trim() !== '').join('\n') + '\n';
+      fs.writeFileSync(envPath, newEnvContent, 'utf8');
+
+      console.log('API keys updated successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Update API keys error:', error);
       return { success: false, error: error.message };
     }
   });

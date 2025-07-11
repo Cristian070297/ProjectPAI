@@ -34,10 +34,19 @@ const useScreenshotHandling = (setIsLoading, setMessages) => {
             ]);
           } catch (analysisError) {
             console.log('Screenshot analysis error:', analysisError.message);
+            
+            // Provide helpful error message based on the type of error
+            let errorMessage = '📸 Screenshot captured successfully!';
+            if (analysisError.message.includes('API key')) {
+              errorMessage += '\n\n⚠️ **AI Analysis unavailable** - Please add your Gemini API key to the .env file to enable screenshot analysis.\n\nYou can still view the screenshot below:';
+            } else {
+              errorMessage += '\n\n⚠️ **AI Analysis failed** - The screenshot was captured but could not be analyzed. You can still view it below:';
+            }
+            
             setMessages(prev => [
               ...prev.slice(0, -1),
               { 
-                text: '📸 Screenshot captured, but analysis failed. Please check your Gemini API configuration.', 
+                text: errorMessage, 
                 sender: 'assistant',
                 image: result.imageData
               }

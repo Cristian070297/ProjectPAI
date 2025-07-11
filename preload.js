@@ -13,8 +13,18 @@ contextBridge.exposeInMainWorld('electron', {
     take: () => ipcRenderer.invoke('take-screenshot')
   },
   gemini: {
-    generateResponse: (message, conversationHistory) => ipcRenderer.invoke('gemini-generate-response', message, conversationHistory),
+    generateResponse: (message, conversationHistory, systemPrompt) => ipcRenderer.invoke('gemini-generate-response', message, conversationHistory, systemPrompt),
     analyzeImage: (imageData, prompt) => ipcRenderer.invoke('gemini-analyze-image', imageData, prompt)
+  },
+  files: {
+    openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+    setUserContext: (contextData) => ipcRenderer.invoke('set-user-context', contextData),
+    getUserContext: () => ipcRenderer.invoke('get-user-context'),
+    clearUserContext: () => ipcRenderer.invoke('clear-user-context')
+  },
+  apiKeys: {
+    getCurrentKeys: () => ipcRenderer.invoke('api-keys-get-current'),
+    updateKeys: (keys) => ipcRenderer.invoke('api-keys-update', keys)
   },
   audio: {
     // Enhanced audio capture APIs

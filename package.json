@@ -1,7 +1,7 @@
 {
-  "name": "ai-assistant-desktop",
+  "name": "career-coach-ai",
   "version": "1.0.0",
-  "description": "AI Assistant Desktop App",
+  "description": "AI-powered career coach for IT graduate interviews - Software Engineering, Data Analytics, Cybersecurity",
   "scripts": {
     "start-renderer": "parcel serve public/index.html --dist-dir dist --port 3000",
     "start": "npm run build:css && npm run build-renderer && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3000 && electron electron-main.js\"",
