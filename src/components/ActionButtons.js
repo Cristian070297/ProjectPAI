@@ -5,9 +5,6 @@ const ActionButtons = ({
   handleVoiceCommand, 
   isLoading, 
   isListening, 
-  isMuted, 
-  setIsMuted, 
-  deepgramVoiceService,
   useSystemAudio,
   systemAudioAvailable
 }) => {
@@ -52,18 +49,6 @@ const ActionButtons = ({
           {isListening && useSystemAudio ? '🔴 Stop' : '🎵 System Audio'}
         </button>
       )}
-
-      <button
-        onClick={() => {
-          setIsMuted(!isMuted);
-          if (!isMuted) {
-            deepgramVoiceService.stopSpeaking();
-          }
-        }}
-        className={`${buttonClass} bg-blue-500 hover:bg-blue-600 text-white`}
-      >
-        {isMuted ? '🔇 Muted' : '🔊 Voice'}
-      </button>
     </div>
   );
 };

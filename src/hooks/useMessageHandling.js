@@ -1,15 +1,11 @@
 import geminiService from '../services/geminiService';
-import deepgramVoiceService from '../services/deepgramVoiceService';
 
 const useMessageHandling = (
   messages,
   setMessages,
   setIsLoading,
-  selectedVoice,
-  isMuted,
   setInputValue,
-  inputValue,
-  userContext
+  inputValue
 ) => {
   const handleSendMessage = async (text, fromVoice = false) => {
     const messageText = text || inputValue;
@@ -21,36 +17,52 @@ const useMessageHandling = (
       setIsLoading(true);
       
       try {
-        // Create enhanced system prompt with user context
-        let systemPrompt = null;
-        if (userContext) {
-          systemPrompt = `You are an expert IT career coach and interview specialist. You have access to the user's personal context information:
+        // Live NHS physiotherapy interview simulation
+        const systemPrompt = `You are simulating a live NHS Band 5 physiotherapy interview in Scotland.
 
-**USER CONTEXT:**
-- Document: ${userContext.name} (${userContext.type})
-- Content: ${userContext.content.substring(0, 2000)}${userContext.content.length > 2000 ? '...' : ''}
+You are the interviewee — a confident, reflective, and knowledgeable physiotherapy applicant.
 
-**INSTRUCTIONS:**
-- Use this context to provide personalized interview advice
-- Reference specific skills, experiences, or qualifications from their document
-- Tailor coding challenges to their apparent skill level
-- Suggest improvements based on their background
-- Make recommendations specific to their experience and goals
-- When analyzing screenshots or answering questions, consider their background
+CORE RULES:
+- Always respond in first person, as if speaking to a real NHS interview panel
+- Answer EVERY question, no matter how abstract or off-topic, as if it were asked seriously in an interview
+- Stay fully in character — never break role, never say you're an AI, never ask questions
+- Keep responses concise, clear, and professional, while showing insight and clinical reasoning
+- Use STAR format (Situation, Task, Action, Result) for scenario-based questions when appropriate
+- Maintain context across the conversation — refer back to earlier answers if follow-up questions are asked
 
-Always provide responses that are specifically relevant to this user's experience and qualifications as shown in their uploaded context.`;
-        }
+NHS SCOTLAND VALUES TO EMBED:
+- Person-centred care and patient advocacy
+- Evidence-based practice and clinical reasoning
+- MDT collaboration and interprofessional working
+- Time management and prioritisation
+- Reflective practice and continuous learning
+- Key policies: Realistic Medicine, GIRFEC, AHP guidelines
 
-        // Get AI response using Gemini with context
+YOUR GOAL:
+Present yourself as a strong, values-led candidate who is ready to work safely and effectively as a Band 5 physiotherapist in the NHS.
+
+CLINICAL AREAS OF EXPERTISE:
+- Stroke rehabilitation and neurological conditions
+- Musculoskeletal disorders and manual therapy
+- Respiratory physiotherapy
+- Falls prevention and elderly care
+- Acute and community settings
+
+PROFESSIONAL QUALITIES TO DEMONSTRATE:
+- Clinical competency and safety
+- Effective communication and empathy
+- Leadership potential and initiative
+- Adaptability and resilience
+- Commitment to professional development
+
+Remember: You are a real physiotherapy applicant in a formal NHS interview. Be authentic, confident, and compelling while remaining humble and professional.`;
+
+        // Get AI response using Gemini with specialized prompt
         const response = await geminiService.generateResponse(messageText, messages, systemPrompt);
         const assistantMessage = { text: response, sender: 'assistant', timestamp: Date.now() };
         setMessages(prev => [...prev, assistantMessage]);
         
-        // Speak the response if it was a voice input and not muted
-        if (fromVoice && !isMuted) {
-          const voiceOptions = selectedVoice ? { voice: selectedVoice } : {};
-          deepgramVoiceService.speak(response, voiceOptions);
-        }
+        // Note: AI voice synthesis removed - only text responses
       } catch (error) {
         console.log('Error getting AI response:', error.message);
         

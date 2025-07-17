@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
 import MessageList from './components/MessageList';
 import VoiceStatus from './components/VoiceStatus';
 import InputArea from './components/InputArea';
 import AudioSetup from './components/AudioSetup';
-import ContextFileManager from './components/ContextFileManager';
 import ApiKeySetup from './components/ApiKeySetup';
 import ApiKeySettings from './components/ApiKeySettings';
 import SystemAudioGuide from './components/SystemAudioGuide';
@@ -30,9 +28,6 @@ const App = () => {
     gain: 1.0
   });
   const [isSystemAudio, setIsSystemAudio] = useState(false);
-  
-  // User context state
-  const [userContext, setUserContext] = useState(null);
   
   // API key setup state
   const [showApiKeySetup, setShowApiKeySetup] = useState(true);
@@ -66,9 +61,7 @@ const App = () => {
     voiceError,
     setVoiceError,
     voiceStatus,
-    setVoiceStatus,
-    isMuted,
-    setIsMuted
+    setVoiceStatus
   } = useAppState();
 
   const selectedVoice = useVoiceSetup();
@@ -77,11 +70,8 @@ const App = () => {
     messages,
     setMessages,
     setIsLoading,
-    selectedVoice,
-    isMuted,
     setInputValue,
-    inputValue,
-    userContext
+    inputValue
   );
 
   const { handleVoiceCommand } = useVoiceHandling(
@@ -107,8 +97,6 @@ const App = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      <Header onSettingsClick={() => setShowApiKeySettings(true)} />
-      
       {/* API Key Setup Notification */}
       {showApiKeySetup && !apiKeysConfigured && (
         <ApiKeySetup 
@@ -161,46 +149,6 @@ const App = () => {
 
       <MessageList messages={messages} isLoading={isLoading} />
       
-      {/* Context File Manager and Reload Button */}
-      <div className="px-4 flex items-center gap-2">
-        <div className="flex-1">
-          <ContextFileManager onContextChange={setUserContext} />
-        </div>
-        <button
-          onClick={() => {
-            setMessages([
-              { 
-                text: `🩺 **NHS Physiotherapy Interview Assistant - Band 5 Scotland**
-
-Hello! I'm your clinical interview preparation assistant, specialized in NHS physiotherapy Band 5 interviews in Scotland.
-
-**I can help you with:**
-• NHS Values & Physiotherapy practice
-• Clinical Scenarios (stroke, MSK, respiratory, falls)
-• MDT Working & communication
-• Prioritization & Time Management
-• Reflective Practice & CPD
-• Challenging Situations with patients/relatives
-• NHS Scotland Policies (Realistic Medicine, GIRFEC, AHP standards)
-
-I'll respond as a senior physiotherapy clinician with evidence-based practice and clinical reasoning. Ready to begin your interview preparation?
-
-*Ask me questions or say "Give me a practice question" to start!*`, 
-                sender: 'assistant' 
-              }
-            ]);
-            setUserContext(null);
-          }}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 whitespace-nowrap"
-          title="Reset conversation and start NHS physiotherapy interview preparation"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          NHS Prep
-        </button>
-      </div>
-      
       <VoiceStatus 
         voiceStatus={voiceStatus} 
         voiceError={voiceError} 
@@ -216,11 +164,10 @@ I'll respond as a senior physiotherapy clinician with evidence-based practice an
         handleVoiceCommand={handleSystemAudioVoiceCommand}
         isLoading={isLoading}
         isListening={isListening}
-        isMuted={isMuted}
-        setIsMuted={setIsMuted}
         deepgramVoiceService={deepgramVoiceService}
         onShowAudioSetup={() => setShowAudioSetup(true)}
         audioConfig={audioConfig}
+        onSettingsClick={() => setShowApiKeySettings(true)}
       />
     </div>
   );

@@ -3,7 +3,8 @@ import { useState } from 'react';
 const useAppState = () => {
   const [messages, setMessages] = useState([
     { 
-      text: `👋 Hello! I'm here to help you, ask away!`, 
+      text: `**Ready to begin your interview preparation?**
+*Ask me a practice question, or say "Give me a stroke scenario" to start!*`, 
       sender: 'assistant' 
     }
   ]);
@@ -12,7 +13,6 @@ const useAppState = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [voiceStatus, setVoiceStatus] = useState('');
-  const [isMuted, setIsMuted] = useState(false);
 
   return {
     messages,
@@ -26,9 +26,7 @@ const useAppState = () => {
     voiceError,
     setVoiceError,
     voiceStatus,
-    setVoiceStatus,
-    isMuted,
-    setIsMuted
+    setVoiceStatus
   };
 };
 

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force default cursor globally - prevent any cursor changes */
+*, *::before, *::after {
+  cursor: default !important;
+}
+
 /* Custom styles */
 body {
   margin: 0;
@@ -10,4 +15,5 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  cursor: default !important;
 }

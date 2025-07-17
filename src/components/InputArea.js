@@ -10,13 +10,12 @@ const InputArea = ({
   handleVoiceCommand,
   isLoading,
   isListening,
-  isMuted,
-  setIsMuted,
   deepgramVoiceService,
   onShowAudioSetup,
-  audioConfig
+  audioConfig,
+  onSettingsClick
 }) => {
-  const [useSystemAudio, setUseSystemAudio] = useState(false);
+  const [useSystemAudio, setUseSystemAudio] = useState(true); // Always use system audio
   const [systemAudioAvailable, setSystemAudioAvailable] = useState(false);
 
   useEffect(() => {
@@ -49,20 +48,23 @@ const InputArea = ({
             <span>Audio Setup</span>
           </button>
           
-          {systemAudioAvailable && (
-            <label className="flex items-center space-x-2 text-sm">
-              <input
-                type="checkbox"
-                checked={useSystemAudio}
-                onChange={(e) => setUseSystemAudio(e.target.checked)}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-gray-700">System Audio</span>
-              <span className="text-xs text-gray-500">
-                (Capture internal audio)
-              </span>
-            </label>
-          )}
+          <button
+            onClick={onSettingsClick}
+            className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+            title="API Key Settings"
+          >
+            <span>⚙️</span>
+            <span>API Settings</span>
+          </button>
+          
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center space-x-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+            title="Reload Application"
+          >
+            <span>🔄</span>
+            <span>Reload</span>
+          </button>
         </div>
         
         <div className="flex items-center space-x-2 text-xs text-gray-500">
@@ -79,9 +81,6 @@ const InputArea = ({
         handleVoiceCommand={handleVoiceCommandWithSystemAudio}
         isLoading={isLoading}
         isListening={isListening}
-        isMuted={isMuted}
-        setIsMuted={setIsMuted}
-        deepgramVoiceService={deepgramVoiceService}
         useSystemAudio={useSystemAudio}
         systemAudioAvailable={systemAudioAvailable}
       />
