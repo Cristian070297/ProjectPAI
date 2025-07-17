@@ -31,8 +31,9 @@ const InputArea = ({
     }
   };
 
-  const handleVoiceCommandWithSystemAudio = () => {
-    handleVoiceCommand(useSystemAudio);
+  const handleVoiceCommandWithSystemAudio = (useSystemAudioParam) => {
+    // Use the parameter passed from the button, not the state
+    handleVoiceCommand(useSystemAudioParam);
   };
 
   return (
