@@ -172,9 +172,66 @@ const App = () => {
 
       <MessageList messages={messages} isLoading={isLoading} />
       
-      {/* Context File Manager */}
-      <div className="px-4">
-        <ContextFileManager onContextChange={setUserContext} />
+      {/* Context File Manager and Reload Button */}
+      <div className="px-4 flex items-center gap-2">
+        <div className="flex-1">
+          <ContextFileManager onContextChange={setUserContext} />
+        </div>
+        <button
+          onClick={() => {
+            setMessages([
+              { 
+                text: `👋 Welcome to **Career Coach AI** - Your IT Interview Content Analyzer!
+
+I specialize in analyzing and answering questions from **any input source** to help you prepare for Software Engineering, Data Analytics, and Cybersecurity interviews.
+
+## 📎 **NEW: Personal Context Feature**
+Upload your **CV/Resume** or portfolio to get personalized advice based on your specific experience and skills!
+
+## 🎯 **How I Help You:**
+
+### 📸 **Screenshot Analysis**
+• **Coding Problems** - Paste/upload coding challenges and get step-by-step solutions
+• **Job Postings** - Analyze requirements and get preparation advice
+• **Technical Diagrams** - Understand system designs and architecture
+• **Resume Review** - Get feedback on your CV for IT roles
+
+### 📝 **Text Content Analysis**  
+• **Code Review** - Analyze your solutions and suggest improvements
+• **Interview Questions** - Get detailed answers with multiple approaches
+• **Technical Concepts** - Clear explanations with interview context
+• **Written Responses** - Review and improve your prepared answers
+
+### 🎤 **Voice Interaction**
+• **Verbal Practice** - Ask questions using voice and get spoken responses
+• **Mock Interviews** - Practice explaining solutions aloud
+• **Real-time Feedback** - Immediate analysis of your verbal responses
+
+## 🏢 **Target Companies I Know:**
+**Tech:** Google, Amazon, Microsoft, Meta, Apple, Netflix
+**Defense:** BAE Systems, Lockheed Martin, Raytheon
+**Finance:** Goldman Sachs, JPMorgan, BlackRock
+
+## 💡 **Getting Started:**
+1. **📎 Upload your CV** for personalized advice (optional but recommended)
+2. **📸 Take screenshots** of coding problems, job posts, or technical content
+3. **📝 Paste text** of interview questions or code you want reviewed  
+4. **🎤 Use voice** to ask questions or practice explanations
+
+**Ready to analyze your content? Upload your context file and share what you'd like help with!**`, 
+                sender: 'assistant' 
+              }
+            ]);
+            setUserContext(null);
+          }}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 whitespace-nowrap"
+          title="Reset conversation and clear context"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Reset
+        </button>
       </div>
       
       {/* Show interview quick actions only when there's just the welcome message */}

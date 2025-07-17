@@ -3,43 +3,43 @@ import React from 'react';
 const InterviewQuickActions = ({ onQuickAction, isLoading }) => {
   const quickActions = [
     {
-      category: "Screenshot Analysis",
-      icon: "�",
+      category: "Problem Solving",
+      icon: "🧠",
       color: "bg-blue-100 border-blue-300 hover:bg-blue-200",
       actions: [
-        { label: "Analyze Coding Problem", prompt: "I'll take a screenshot of a coding problem. Please analyze it and provide a step-by-step solution with explanation of the approach, complexity, and interview tips." },
-        { label: "Review Job Posting", prompt: "I'll share a screenshot of a job posting. Please analyze the requirements, highlight key skills needed, and suggest how to prepare for this specific role." },
-        { label: "Explain Technical Diagram", prompt: "I'll show you a technical diagram or system architecture. Please explain what it represents and how it might come up in system design interviews." }
+        { label: "Code Challenge (Screenshot)", mode: "code_challenge_screenshot", prompt: "I'll take a screenshot of a coding problem. Please analyze it, provide multiple solution approaches, explain the logic step-by-step, and give me interview tips for presenting the solution." },
+        { label: "Algorithm Challenge (Text)", mode: "algorithm_challenge_text", prompt: "I'll paste a coding interview question. Please provide multiple solution approaches with time/space complexity analysis, edge cases, and optimization strategies." },
+        { label: "Debug My Code", mode: "debug_code", prompt: "I'll share code that has issues (screenshot or text). Please help me debug it, explain what's wrong, and suggest improvements with interview-quality explanations." }
       ]
     },
     {
-      category: "Text Analysis",
-      icon: "�",
+      category: "Technical Explanation",
+      icon: "📚",
       color: "bg-green-100 border-green-300 hover:bg-green-200",
       actions: [
-        { label: "Solve Code Challenge", prompt: "I'll paste a coding interview question. Please provide multiple solution approaches with time/space complexity analysis and interview tips." },
-        { label: "Review My Answer", prompt: "I'll share my answer to an interview question. Please review it and provide feedback on how to improve it for actual interviews." },
-        { label: "Explain Technical Concept", prompt: "I'll ask about a specific technical concept. Please explain it clearly with examples and how it relates to interview questions." }
+        { label: "System Design Analysis", mode: "system_design_analysis", prompt: "I'll share a system design diagram or architecture. Please explain it in detail, discuss trade-offs, and relate it to common interview scenarios." },
+        { label: "Technical Concept Deep Dive", mode: "technical_concept_deep_dive", prompt: "I'll ask about a specific technical concept (APIs, databases, security, etc.). Please explain it clearly with examples and interview relevance." },
+        { label: "Code Review & Optimization", mode: "code_review_optimization", prompt: "I'll share my code solution. Please review it for best practices, suggest optimizations, and help me explain it like in a technical interview." }
       ]
     },
     {
-      category: "Voice Practice",
-      icon: "�",
+      category: "Mock Interview Practice",
+      icon: "🎙️",
       color: "bg-purple-100 border-purple-300 hover:bg-purple-200",
       actions: [
-        { label: "Technical Question Practice", prompt: "I'll ask technical questions using voice. Please provide clear, structured answers that I can practice speaking aloud." },
-        { label: "Code Explanation Practice", prompt: "I'll describe a coding problem verbally. Please help me practice explaining my solution approach clearly and concisely." },
-        { label: "Mock Interview Mode", prompt: "Let's start a voice-based mock interview. Ask me questions and I'll respond verbally, then provide feedback on my answers." }
+        { label: "Technical Interview Simulation", mode: "technical_interview_simulation", prompt: "Let's start a mock technical interview. Ask me coding questions, system design problems, or technical concepts. I'll respond and you provide feedback." },
+        { label: "Behavioral Interview Practice", mode: "behavioral_interview_practice", prompt: "Let's practice behavioral questions using the STAR method. Ask me common questions and help me structure better answers." },
+        { label: "Live Problem Solving", mode: "live_problem_solving", prompt: "Walk me through solving a coding problem step-by-step. I'll explain my thinking process and you help me communicate more effectively." }
       ]
     },
     {
-      category: "Content Review",
-      icon: "🔍",
+      category: "Career Development",
+      icon: "🚀",
       color: "bg-yellow-100 border-yellow-300 hover:bg-yellow-200",
       actions: [
-        { label: "Resume Analysis", prompt: "I'll share my resume content (text or screenshot). Please review it for IT roles and suggest improvements to highlight relevant skills and experience." },
-        { label: "Portfolio Review", prompt: "I'll describe or show my portfolio projects. Please provide feedback on how to present them effectively in interviews." },
-        { label: "Interview Answer Review", prompt: "I'll share my prepared answers to common interview questions. Please review and suggest improvements for better impact." }
+        { label: "Resume & Portfolio Review", mode: "resume_portfolio_review", prompt: "I'll share my resume or portfolio content. Please review it for technical roles and suggest improvements to highlight relevant experience." },
+        { label: "Job Posting Analysis", mode: "job_posting_analysis", prompt: "I'll share a job posting. Please analyze the requirements, identify key skills needed, and suggest how to prepare for this specific role." },
+        { label: "Interview Answer Optimization", mode: "interview_answer_optimization", prompt: "I'll share my prepared answers to common interview questions. Please review and suggest improvements for better impact and clarity." }
       ]
     }
   ];
@@ -47,8 +47,8 @@ const InterviewQuickActions = ({ onQuickAction, isLoading }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-        � Content Analysis & Interview Help
-        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Choose input method</span>
+        🤖 Multi-Modal AI Assistant
+        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Problem Solving & Interview Prep</span>
       </h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -75,7 +75,7 @@ const InterviewQuickActions = ({ onQuickAction, isLoading }) => {
       </div>
       
       <div className="mt-4 text-xs text-gray-600 text-center">
-        💡 <strong>How it works:</strong> Choose your input method (screenshot, text, or voice), then I'll analyze your content and provide detailed IT interview guidance!
+        💡 <strong>How it works:</strong> Choose any input method (screenshot, text, or voice) → I'll analyze your content and provide real-time problem solving, technical explanations, and interview coaching!
       </div>
     </div>
   );

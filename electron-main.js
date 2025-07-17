@@ -45,8 +45,8 @@ function createWindow () {
   // Load the index.html from Parcel's development server or built version
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
-    console.log('Development mode: loading from localhost:3000');
-    mainWindow.loadURL('http://localhost:3000');
+    console.log('Development mode: loading from localhost:3001');
+    mainWindow.loadURL('http://localhost:3001');
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {

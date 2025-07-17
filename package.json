@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "AI-powered career coach for IT graduate interviews - Software Engineering, Data Analytics, Cybersecurity",
   "scripts": {
-    "start-renderer": "parcel serve public/index.html --dist-dir dist --port 3000",
+"start-renderer": "parcel serve public/index.html --dist-dir dist --port 3001",
     "start": "npm run build:css && npm run build-renderer && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3000 && electron electron-main.js\"",
-    "start-dev": "concurrently \"npm run start-renderer\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron electron-main.js\"",
+"start-dev": "npm run build:css && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=development electron electron-main.js\"",
     "build-renderer": "node build-renderer.js",
     "build": "electron-builder",
     "build:css": "tailwindcss -i ./public/styles.css -o ./public/build/styles.css",
