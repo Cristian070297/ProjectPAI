@@ -271,18 +271,10 @@ class DeepgramVoiceService {
             });
           }
         }, 2000); // Check every 2 seconds
+        
+        // Store the interval reference so it can be cleared when stopping manually
+        this.audioLevelCheck = audioLevelCheck;
       }
-
-      // Auto-stop after 10 seconds for system audio, 5 seconds for microphone
-      const duration = useSystemAudio ? 10000 : 5000;
-      setTimeout(() => {
-        if (audioLevelCheck) {
-          clearInterval(audioLevelCheck);
-        }
-        if (this.isListening && this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-          this.stopListening();
-        }
-      }, duration);
 
     } catch (error) {
       console.warn('Error accessing audio:', error.message);
@@ -625,6 +617,12 @@ class DeepgramVoiceService {
 
   cleanup() {
     try {
+      // Clear audio level check interval if it exists
+      if (this.audioLevelCheck) {
+        clearInterval(this.audioLevelCheck);
+        this.audioLevelCheck = null;
+      }
+      
       // Clean up SystemAudioService
       if (this.systemAudioService) {
         this.systemAudioService.stopAudioLevelMonitoring();
