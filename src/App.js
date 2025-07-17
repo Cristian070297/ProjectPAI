@@ -4,7 +4,6 @@ import MessageList from './components/MessageList';
 import VoiceStatus from './components/VoiceStatus';
 import InputArea from './components/InputArea';
 import AudioSetup from './components/AudioSetup';
-import InterviewQuickActions from './components/InterviewQuickActions';
 import ContextFileManager from './components/ContextFileManager';
 import ApiKeySetup from './components/ApiKeySetup';
 import ApiKeySettings from './components/ApiKeySettings';
@@ -181,44 +180,7 @@ const App = () => {
           onClick={() => {
             setMessages([
               { 
-                text: `👋 Welcome to **Career Coach AI** - Your IT Interview Content Analyzer!
-
-I specialize in analyzing and answering questions from **any input source** to help you prepare for Software Engineering, Data Analytics, and Cybersecurity interviews.
-
-## 📎 **NEW: Personal Context Feature**
-Upload your **CV/Resume** or portfolio to get personalized advice based on your specific experience and skills!
-
-## 🎯 **How I Help You:**
-
-### 📸 **Screenshot Analysis**
-• **Coding Problems** - Paste/upload coding challenges and get step-by-step solutions
-• **Job Postings** - Analyze requirements and get preparation advice
-• **Technical Diagrams** - Understand system designs and architecture
-• **Resume Review** - Get feedback on your CV for IT roles
-
-### 📝 **Text Content Analysis**  
-• **Code Review** - Analyze your solutions and suggest improvements
-• **Interview Questions** - Get detailed answers with multiple approaches
-• **Technical Concepts** - Clear explanations with interview context
-• **Written Responses** - Review and improve your prepared answers
-
-### 🎤 **Voice Interaction**
-• **Verbal Practice** - Ask questions using voice and get spoken responses
-• **Mock Interviews** - Practice explaining solutions aloud
-• **Real-time Feedback** - Immediate analysis of your verbal responses
-
-## 🏢 **Target Companies I Know:**
-**Tech:** Google, Amazon, Microsoft, Meta, Apple, Netflix
-**Defense:** BAE Systems, Lockheed Martin, Raytheon
-**Finance:** Goldman Sachs, JPMorgan, BlackRock
-
-## 💡 **Getting Started:**
-1. **📎 Upload your CV** for personalized advice (optional but recommended)
-2. **📸 Take screenshots** of coding problems, job posts, or technical content
-3. **📝 Paste text** of interview questions or code you want reviewed  
-4. **🎤 Use voice** to ask questions or practice explanations
-
-**Ready to analyze your content? Upload your context file and share what you'd like help with!**`, 
+                text: `👋 Hello! I'm here to help you, ask away!`, 
                 sender: 'assistant' 
               }
             ]);
@@ -233,16 +195,6 @@ Upload your **CV/Resume** or portfolio to get personalized advice based on your 
           Reset
         </button>
       </div>
-      
-      {/* Show interview quick actions only when there's just the welcome message */}
-      {messages.length === 1 && (
-        <div className="px-4">
-          <InterviewQuickActions 
-            onQuickAction={handleSendMessage} 
-            isLoading={isLoading}
-          />
-        </div>
-      )}
       
       <VoiceStatus 
         voiceStatus={voiceStatus} 
