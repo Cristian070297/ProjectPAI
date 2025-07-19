@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "AI-powered career coach for IT graduate interviews - Software Engineering, Data Analytics, Cybersecurity",
   "scripts": {
-"start-renderer": "parcel serve public/index.html --dist-dir dist --port 3001",
+    "start-renderer": "parcel serve public/index.html --dist-dir dist --port 3001",
     "start": "npm run build:css && npm run build-renderer && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3000 && electron electron-main.js\"",
-"start-dev": "npm run build:css && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=development electron electron-main.js\"",
+    "start-dev": "npm run build:css && concurrently \"npm run start-renderer\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=development electron electron-main.js\"",
     "build-renderer": "node build-renderer.js",
-    "build": "electron-builder",
     "build:css": "tailwindcss -i ./public/styles.css -o ./public/build/styles.css",
-    "build:css:watch": "tailwindcss -i ./public/styles.css -o ./public/build/styles.css --watch"
+    "build:css:watch": "tailwindcss -i ./public/styles.css -o ./public/build/styles.css --watch",
+    "prebuild": "cross-env NODE_ENV=production npm run build:css && npm run build-renderer",
+    "build": "npm run prebuild && electron-builder",
+    "build:win": "npm run prebuild && electron-builder --win",
+    "build:win-portable": "npm run prebuild && electron-builder --win portable",
+    "dist": "npm run build"
   },
   "keywords": [],
   "author": "",
@@ -41,5 +45,47 @@
   "targets": {
     "main": false
   },
-  "main": "electron-main.js"
+  "main": "electron-main.js",
+  "build": {
+    "appId": "com.cristian.clai",
+    "productName": "ClAI - Career Coach AI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron-main.js",
+      "preload.js",
+      "public/**/*",
+      "dist/**/*",
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!dist/win-unpacked",
+      "!dist/*.exe",
+      "!dist/*.blockmap",
+      "!dist/*.yml"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
 }

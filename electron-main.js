@@ -52,14 +52,48 @@ function createWindow () {
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {
-    const filePath = path.resolve(__dirname, 'dist/index.html');
-    console.log('Production mode: loading file:', filePath);
-    mainWindow.loadURL('file://' + filePath);
+    // In packaged app, files are in different location
+    let filePath;
+    if (app.isPackaged) {
+      // In packaged app, look for index.html in the resources/app/dist folder
+      filePath = path.join(process.resourcesPath, 'app', 'dist', 'index.html');
+      console.log('Packaged mode: trying resources path:', filePath);
+      
+      // Fallback to app directory if resources path doesn't work
+      if (!fs.existsSync(filePath)) {
+        filePath = path.join(__dirname, 'dist', 'index.html');
+        console.log('Packaged mode: falling back to app path:', filePath);
+      }
+    } else {
+      // Development build
+      filePath = path.resolve(__dirname, 'dist/index.html');
+      console.log('Development build mode: loading file:', filePath);
+    }
+    
+    console.log('Loading file:', filePath);
+    console.log('File exists:', fs.existsSync(filePath));
+    
+    mainWindow.loadFile(filePath);
+    
     // Open DevTools only if explicitly requested
     if (process.env.DEBUG_ELECTRON) {
       mainWindow.webContents.openDevTools();
     }
   }
+  
+  // Add debugging event listeners
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ Page loaded successfully');
+  });
+  
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('❌ Failed to load page:', errorCode, errorDescription, validatedURL);
+  });
+  
+  mainWindow.webContents.on('dom-ready', () => {
+    console.log('✅ DOM ready');
+  });
+  
   mainWindow.setContentProtection(true);
 
   ipcMain.on('save-screenshot', (event, imageData) => {
